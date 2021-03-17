@@ -1,0 +1,3 @@
+[submodule "adaptive-object-detection"]
+	path = adaptive-object-detection
+	url = https://github.com/neuralet/adaptive-object-detection
