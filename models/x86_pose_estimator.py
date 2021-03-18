@@ -42,7 +42,7 @@ class X86PoseEstimator(BasePoseEstimator):
         
         raw_detections = self.detector.inference(preprocessed_image)
         detections = prepare_detection_results(raw_detections, self.detector_width, self.detector_height)
-        inps, cropped_boxes, boxes, scores, ids = transform_detections(inp_rgb, detections, (256, 192))
+        inps, cropped_boxes, boxes, scores, ids = self.transform_detections(inp_rgb, detections, (256, 192))
         raw_output = self.pose_model(inps)
         hm = raw_output['conv_out'].numpy()
         return (hm, cropped_boxes, boxes, scores, ids)
@@ -80,6 +80,45 @@ class X86PoseEstimator(BasePoseEstimator):
 		}
 	    )
 	return _result
+
+    def transform_detections(self, image, dets):
+        input_size = self.pose_input_size
+	if isinstance(dets, int):
+	    return 0, 0
+	dets = dets[dets[:, 0] == 0]
+	boxes = dets[:, 1:5]
+	scores = dets[:, 5:6]
+	ids = np.zeros(scores.shape)
+	inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
+	cropped_boxes = np.zeros([boxes.shape[0], 4])
+	for i, box in enumerate(boxes):
+	    inps[i], cropped_box = self.transform_single_detection(image, box, input_size)
+	    cropped_boxes[i] = np.float32(cropped_box)
+	inps = im_to_tensor(inps) 
+	return inps, cropped_boxes, boxes, scores, ids
+
+
+    @staticmethod
+    def transform_single_detection(image, bbox, input_size):
+	aspect_ratio = input_size[1] / input_size[0]
+	xmin, ymin, xmax, ymax = bbox
+	center, scale = box_to_center_scale(
+	    xmin, ymin, xmax - xmin, ymax - ymin, aspect_ratio)
+	scale = scale * 1.0
+
+	input_size = input_size
+	inp_h, inp_w = input_size
+
+	trans = get_affine_transform(center, scale, 0, [inp_w, inp_h])
+	inp_h, inp_w = input_size
+	img = cv2.warpAffine(image, trans, (int(inp_w), int(inp_h)), flags=cv2.INTER_LINEAR)
+	bbox = center_scale_to_box(center, scale)
+	img = img / 255.0
+	img[..., 0] = img[..., 0] - 0.406
+	img[..., 1] = img[..., 1] - 0.457
+	img[..., 2] = img[..., 2] - 0.480
+	#img = im_to_tensor(img)
+	return img, bbox
 
     @staticmethod
     def heatmap_to_coord(hms, bbox, hms_flip=None, **kwargs):
