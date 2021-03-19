@@ -1,85 +1,91 @@
-import tensorflow.compat.v1 as tf
+import cv2 as cv
 import numpy as np
-#from models.fastpose import FastPose
-from utils.pose_input_preprocess import transform_detections
-from utils.convert_results_format import prepare_detection_results
-from utils.pose_postproccessing import post_process
-from utils.visualization_utils import visualize_poses
-from builders.builder import build_detection_model
-import tensorflow as tf
-import cv2
+import argparse
+import logging
+import os
+from adaptive_object_detection.utils.parse_label_map import create_category_index_dict
+from tools.visualization_utils import visualize_poses
+logging.basicConfig(level=logging.INFO)
 
 
-def main():
-    #detection_model = build_detection_model(name, config)
-    #detection_model.load_model(model_path, label_map)
-    model = tf.saved_model.load("inference/saved_model")
-    infr = model.signatures['serving_default']
+def inference(args):
+    device = args.device
+    detector_input_width = args.detector_input_width
+    detector_input_height = args.detector_input_height
+    detector_thresh = args.detector_threshold
+    pose_input_width = args.pose_input_width
+    pose_input_height = args.pose_input_height
+    heatmap_width = args.heatmap_width
+    heatmap_height = args.heatmap_height
+    label_map_file = args.label_map
+    if not label_map_file:
+        label_map_file = "adaptive_object_detection/utils/mscoco_label_map.pbtxt"
+    label_map = create_category_index_dict(label_map_file)
+    if device == "x86":
+        from models.x86_pose_estimator import X86PoseEstimator
+        pose_estimator = X86PoseEstimator(detector_thresh=detector_thresh,
+                detector_input_size=(detector_input_height, detector_input_width),
+                pose_input_size=(pose_input_height, pose_input_width),
+                heatmap_size=(heatmap_height, heatmap_width))
+    else:
+        raise ValueError("device should be 'x86' but you provided {0}".format(device))
+    video_uri = args.input_video
+    if not os.path.isfile(video_uri):
+        raise FileNotFoundError('video file does not exist under: {}'.format(video_uri))
+    if not os.path.isdir(args.out_dir):
+        logging.info("the provided output directory : {0} is not exist".format(args.out_dir))
+        logging.info("creating output directory : {0}".format(args.out_dir))
+        os.makedirs(args.out_dir, exist_ok=True)
 
-    inp = cv2.imread('inference/sample.jpg')
-    inp_rgb = im_rgb = cv2.cvtColor(inp, cv2.COLOR_BGR2RGB)
-    #preprocessed_image = detector.preprocess(inp)
-    #detections_raw = detector.inference(preprocessed_image)
-    #detections = prepare_detection_results(detections_raw, w, h)
-    
-#    detections = np.array([[  0.0000,   0.0000,   7.9978,  71.6218, 123.5006,   0.9864,   0.9994,
-#           0.0000]])
-    
-    detections = np.array([[0.0000e+00, 4.8360e+02, 8.0461e+02, 1.0931e+03, 2.0388e+03, 9.9820e-01,
-         9.9999e-01, 0.0000e+00],
-        [0.0000e+00, 1.0499e+03, 7.5240e+02, 1.6743e+03, 2.4084e+03, 9.9078e-01,
-         9.9999e-01, 0.0000e+00],
-        [0.0000e+00, 1.5949e+03, 9.9634e+02, 2.3587e+03, 2.2222e+03, 9.8668e-01,
-         9.9995e-01, 0.0000e+00],
-        [0.0000e+00, 3.2557e+03, 9.0536e+02, 3.5294e+03, 1.6164e+03, 9.8638e-01,
-         9.9998e-01, 0.0000e+00],
-        [0.0000e+00, 2.6197e+03, 7.6679e+02, 3.1344e+03, 2.1086e+03, 9.6865e-01,
-         9.9996e-01, 0.0000e+00],
-        [0.0000e+00, 2.2635e+03, 9.3226e+02, 2.3718e+03, 1.3805e+03, 9.3844e-01,
-         9.9998e-01, 0.0000e+00],
-        [0.0000e+00, 4.4076e+02, 9.0047e+02, 6.3583e+02, 1.5971e+03, 9.2874e-01,
-         9.9998e-01, 0.0000e+00],
-        [0.0000e+00, 2.8621e+03, 7.0690e+02, 3.2694e+03, 1.8603e+03, 9.0747e-01,
-         9.9999e-01, 0.0000e+00],
-        [0.0000e+00, 8.6789e+02, 8.1764e+02, 1.1657e+03, 1.7274e+03, 8.5713e-01,
-         9.9999e-01, 0.0000e+00],
-        [0.0000e+00, 2.3431e+03, 9.5201e+02, 2.4418e+03, 1.3627e+03, 6.8212e-01,
-         9.9990e-01, 0.0000e+00],
-        [0.0000e+00, 2.3730e+03, 1.0087e+03, 2.4474e+03, 1.3088e+03, 4.0227e-01,
-         9.9926e-01, 0.0000e+00],
-        [0.0000e+00, 2.2329e+03, 9.8045e+02, 2.2894e+03, 1.3390e+03, 3.7365e-01,
-         9.9814e-01, 0.0000e+00],
-        [0.0000e+00, 1.7698e+03, 9.6615e+02, 1.8724e+03, 1.1957e+03, 3.0504e-01,
-         9.9141e-01, 0.0000e+00],
-        [0.0000e+00, 1.7155e+03, 9.3078e+02, 1.8016e+03, 1.2231e+03, 3.0181e-01,
-         9.9887e-01, 0.0000e+00],
-        [0.0000e+00, 3.4508e+03, 9.8130e+02, 3.5637e+03, 1.1761e+03, 2.8387e-01,
-         4.7732e-01, 0.0000e+00],
-        [0.0000e+00, 2.5856e+03, 9.3704e+02, 2.6338e+03, 1.0048e+03, 2.6423e-01,
-         9.9398e-01, 0.0000e+00],
-        [0.0000e+00, 1.7922e+03, 9.8538e+02, 1.8853e+03, 1.1632e+03, 2.3618e-01,
-         9.7348e-01, 0.0000e+00],
-        [0.0000e+00, 2.4469e+03, 9.4039e+02, 2.4986e+03, 1.0229e+03, 2.3030e-01,
-         9.9648e-01, 0.0000e+00],
-        [0.0000e+00, 2.4280e+03, 9.3910e+02, 2.4968e+03, 1.1061e+03, 1.6140e-01,
-         9.9904e-01, 0.0000e+00],
-        [0.0000e+00, 3.2621e+03, 9.3852e+02, 3.3417e+03, 1.1096e+03, 1.5570e-01,
-         9.9791e-01, 0.0000e+00],
-        [0.0000e+00, 3.2928e+03, 9.4538e+02, 3.3444e+03, 1.0281e+03, 1.3924e-01,
-         9.0198e-01, 0.0000e+00],
-        [0.0000e+00, 3.5420e+03, 9.8530e+02, 3.5634e+03, 1.0593e+03, 1.0013e-01,
-         7.0085e-01, 0.0000e+00]])
-
-    
-    inps, cropped_boxes, boxes, scores, ids = transform_detections(inp_rgb, detections, (256, 192))
-    raw_output = infr(inps)
-    hm = raw_output['conv_out'].numpy()
-    poses = post_process(hm, cropped_boxes, boxes, scores, ids)
-    output_image = visualize_poses(inp_rgb, poses) 
-    cv2.imwrite("test_out.jpg", cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR))
-    # TODO: image decoding
-    print("Done!")
+    file_name = ".".join((video_uri.split("/")[-1]).split(".")[:-1])
+    input_cap = cv.VideoCapture(video_uri)
+    fourcc =  cv.VideoWriter_fourcc(*'XVID')
+    out_cap = cv.VideoWriter(os.path.join(args.out_dir, file_name + "_neuralet_pose.avi"),fourcc, 25, (args.detector_input_width, args.detector_input_height))
+    if (input_cap.isOpened()):
+        print('opened video ', video_uri)
+    else:
+        print('failed to load video ', video_uri)
+        return
+    pose_estimator.load_model(args.detector_model_path, label_map)
+    running_video = True
+    frame_number = 0
+    while input_cap.isOpened() and running_video:
+        ret, cv_image = input_cap.read()
+        if not ret:
+            running_video = False
+        if np.shape(cv_image) != ():
+            out_frame = cv.resize(cv_image, (args.detector_input_width, args.detector_input_height))
+            preprocessed_image = pose_estimator.preprocess(cv_image)
+            result_raw = pose_estimator.inference(preprocessed_image)
+            result = pose_estimator.post_process(*result_raw)
+            if result is not None:
+                out_frame = visualize_poses(out_frame, result)
+            out_cap.write(out_frame)
+            frame_number += 1
+            if frame_number % 100 == 0:
+                logging.info("processed {0} frames".format(frame_number))
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="This script runs the inference of pose estimation models")
+    parser.add_argument("--device", type=str, default="x86", help="we only support x86 for now")
+    parser.add_argument("--input_video", type=str, required=True, help="input video path")
+    parser.add_argument("--out_dir", type=str, required=True, help="directory to store output video")
+    parser.add_argument("--detector_model_path", type=str, help="path to the detector model files, if not provided the default COCO models will be used")
+    parser.add_argument("--label_map", type=str, help="path to the label map file")
+    parser.add_argument("--detector_threshold", type=float, default=0.1, help="detection's score threshold")
+    parser.add_argument("--detector_input_width", type=int, default=300, help="width of the detector's input")
+    parser.add_argument("--detector_input_height", type=int, default=300, help="height of the detector's input")
+    parser.add_argument("--pose_input_width", type=int, default=192, help="width of the pose estimator's input")
+    parser.add_argument("--pose_input_height", type=int, default=256, help="height of the pose estomator's input")
+    parser.add_argument("--heatmap_width", type=int, default=48, help="width of the pose haetmap")
+    parser.add_argument("--heatmap_height", type=int, default=64, help="height of the pose heatmap")
+    parser.add_argument("--out_width", type=int, default=960, help="width of the output video")
+    parser.add_argument("--out_height", type=int, default=540, help="height of the output video")
+
+    args = parser.parse_args()
+
+    if (vars(args)["detector_model_path"]) and (not vars(args)["label_map"]):
+        parser.error('If you pass model_path you should pass label_map too')
+                        
+    inference(args)
