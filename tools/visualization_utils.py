@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-def visualize_poses(img, poses):
+def visualize_poses(img, poses, input_size):
     kp_num = 17
     l_pair = [
                 (0, 1), (0, 2), (1, 3), (2, 4),  # Head
@@ -22,19 +22,18 @@ def visualize_poses(img, poses):
     human_ratio = num_humans // len(colors)
     colors = colors * (human_ratio + 1)
     height, width = img.shape[:2]
-    bg = img.copy()
-
+    bg = img.copy() 
     for i, human in enumerate(poses):
         part_line = {}
-        kp_preds = human['keypoints']
+        kp_preds = human['keypoints'] / input_size * [width, height]
         kp_scores = human['kp_score']
-        line_width = 2
+        line_width = 5 
         transparency = 0.55
         if kp_scores[0] > 0.4 and kp_scores[-1] > 0.4:
             human_height = np.abs(kp_preds[-1, 1] - kp_preds[0, 1])
             height_ratio = human_height / height
             transparency = np.clip(1 - height_ratio, 0.55, 1)
-            line_width = int(np.clip(2 * height_ratio, 1, 20))
+            line_width = int(np.clip(20 * height_ratio, 5, 10))
         kp_preds = np.vstack((kp_preds, (kp_preds[5, :] + kp_preds[6, :]) / 2))
         kp_scores = np.vstack((kp_scores, (kp_scores[5, :] + kp_scores[6, :]) / 2))
         vis_thres = 0.4
