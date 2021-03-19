@@ -28,13 +28,13 @@ def visualize_poses(img, poses):
         part_line = {}
         kp_preds = human['keypoints']
         kp_scores = human['kp_score']
-        line_width = 10
+        line_width = 2
         transparency = 0.55
         if kp_scores[0] > 0.4 and kp_scores[-1] > 0.4:
             human_height = np.abs(kp_preds[-1, 1] - kp_preds[0, 1])
             height_ratio = human_height / height
             transparency = np.clip(1 - height_ratio, 0.55, 1)
-            line_width = int(np.clip(40 * height_ratio, 10, 20))
+            line_width = int(np.clip(2 * height_ratio, 1, 20))
         kp_preds = np.vstack((kp_preds, (kp_preds[5, :] + kp_preds[6, :]) / 2))
         kp_scores = np.vstack((kp_scores, (kp_scores[5, :] + kp_scores[6, :]) / 2))
         vis_thres = 0.4
