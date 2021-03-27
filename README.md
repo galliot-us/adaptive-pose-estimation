@@ -15,7 +15,7 @@ Note that your models categories must contains **person** class.
 2. Clone this repository:
 
 ```
-git clone https://github.com/neuralet/adaptive-pose-estimation.git
+git clone --recurse-submodules https://github.com/neuralet/adaptive-pose-estimation.git
 cd adaptive-pose-estimation
 ```
 
