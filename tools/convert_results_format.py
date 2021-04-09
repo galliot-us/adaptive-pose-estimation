@@ -13,10 +13,11 @@ def prepare_detection_results(detections, w, h):
         (batch_index, x_min, y_min, x_max, y_max, detection_score, class_score, 0)
     """
     scale_factors = np.array([w, h, w, h]).astype(np.float32)
-    num_of_objects = len(detections.objects)
+    people = [item for item in detections.objects if item.category == "person"]
+    num_of_objects = len(people)
     output = np.zeros((num_of_objects, 8), dtype=np.float32)
     output[:, 6] = 0.99
-    for i, obj in enumerate(detections.objects):
+    for i, obj in enumerate(people):
         bbox = np.array([obj.bbox.left, obj.bbox.top, obj.bbox.right, obj.bbox.bottom])
         bbox_scaled = (bbox.astype(np.float32) * scale_factors)
         output[i, 1:5] = bbox_scaled

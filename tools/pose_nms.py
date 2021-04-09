@@ -183,10 +183,11 @@ def p_merge_fast(ref_pose, cluster_preds, cluster_scores, ref_dist):
         cluster_preds = np.array([cluster_preds])
         cluster_scores = np.array([cluster_scores])
     if np.ndim(mask) == 1:
-        mask = np.array([mask])
+        mask = np.array([mask]) 
     # Weighted Merge
     masked_scores = np.multiply(cluster_scores , mask.astype(float).transpose(1, 0)) + 0.00001 # Addeed by mrn
-    normed_scores = masked_scores / np.sum(masked_scores, axis=0)
+    masked_scores = np.expand_dims(masked_scores[..., 0], -1)
+    normed_scores = masked_scores / np.sum(masked_scores, axis=0) 
     final_pose = np.sum(np.multiply(cluster_preds, normed_scores.repeat(1, 2)), axis=0)
     final_score = np.sum(np.multiply(masked_scores, normed_scores), axis=0)
     return final_pose, final_score
