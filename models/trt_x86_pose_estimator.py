@@ -1,8 +1,10 @@
 import os
 import tensorrt as trt
 import pycuda.driver as cuda
+import pycuda.autoinit
 import logging
 from adaptive_object_detection.detectors.jetson_detector import JetsonDetector
+from adaptive_object_detection.detectors.x86_detector_trt import X86TrtDetector
 from .base_pose_estimator import BasePoseEstimator
 from tools.convert_results_format import prepare_detection_results
 from tools.bbox import box_to_center_scale, center_scale_to_box
@@ -30,15 +32,15 @@ class TRTPoseEstimator(BasePoseEstimator):
         self.h_ouput = None
         self.d_output = None
         self.stream = None
-
+        
+        TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
+        self.trt_runtime = trt.Runtime(TRT_LOGGER)
         self.model = None
         self.detector = None
 
-    def load_model(self, detector_path, detector_label_map=None):
-
-        self.detector = JetsonDetector(width=self.detector_width, height=self.detector_height,
-                                       thresh=self.detector_thresh)
-        self.detector.load_model(detector_path)
+    def load_model(self, detector_path, detector_label_map):
+        self.detector = X86TrtDetector(width=self.detector_width, height=self.detector_height, thresh=self.detector_thresh)
+        self.detector.load_model(detector_path, detector_label_map)
         self._init_cuda_stuff()
 
     def inference(self, preprocessed_image):
