@@ -33,7 +33,7 @@ RUN apt-get install -y pkg-config libhdf5-100 libhdf5-dev
 RUN apt-get install -y python3-h5py python3-opencv
 RUN pip3 install wget pillow
 
-#COPY ./exporters/libflattenconcat.so.6 /opt/libflattenconcat.so 
+COPY ./exporters/libflattenconcat.so.6 /opt/libflattenconcat.so
 RUN apt update && apt install -y libtcmalloc-minimal4
 WORKDIR /repo
 ENV LD_PRELOAD="/usr/lib/aarch64-linux-gnu/libtcmalloc_minimal.so.4"
