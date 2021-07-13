@@ -19,11 +19,23 @@ git clone --recurse-submodules https://github.com/neuralet/adaptive-pose-estimat
 cd adaptive-pose-estimation
 ```
 
-3. Build and run docker container:
+3-1. Build and run docker container on X86 with GPU:
 ```
 docker build -f x86-gpu.Dockerfile -t "neuralet/pose-estimation:latest-x86_64_gpu" .
 docker run -it --gpus all -v "$PWD":/repo neuralet/pose-estimation:latest-x86_64_gpu
 ```
+
+3-2. Build and run docker container on Jetson TX2:
+```
+docker build -f jetson-tx2-alphapose.Dockerfile -t "neuralet/pose-estimation:latest-jetson_tx2" .
+docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo neuralet/pose-estimation:latest-jetson_tx2
+```
+* Make sure you run the following bash script inside the Jetson TX2 container to export TRT model.
+  ```
+  # bash generate_pose_tensorrt.bash [ONNX FILE URL] [Stored on FLOAT16(fp16)/ FLOAT32(fp32)] [BATCH_SIZE]
+  bash generate_pose_tensorrt.bash https://media.githubusercontent.com/media/neuralet/models/master/ONNX/fastpose/fastpose_resnet50_256_192_tf.onnx fp16 8
+  NOTE: Fore Jetson TX2 batch size 8 is recommended
+  ```
 
 4. Start Inference:
 
@@ -39,6 +51,8 @@ python3 inference/inference.py [--device DEVICE] --input_video INPUT_VIDEO --out
                     [--heatmap_width HEATMAP_WIDTH]
                     [--heatmap_height HEATMAP_HEIGHT] [--out_width OUT_WIDTH]
                     [--out_height OUT_HEIGHT]
+                    [--batch_size BATCH_SIZE]
+                    [--trt_model_path TRT_MODEL_PATH]
 
 
 
@@ -46,7 +60,7 @@ python3 inference/inference.py [--device DEVICE] --input_video INPUT_VIDEO --out
 ```
 optional arguments:
   -h, --help            show this help message and exit
-  --device DEVICE       we only support x86 for now
+  --device DEVICE       supports x86 and jetson-tx2
   --input_video INPUT_VIDEO
                         input video path
   --out_dir OUT_DIR     directory to store output video
@@ -73,6 +87,10 @@ optional arguments:
                         width of the output video
   --out_height OUT_HEIGHT
                         height of the output video
+  --batch_size BATCH_SIZE
+                        the trt model batch size (works only for Jetson TX2 device)
+  --trt_model_path TRT_MODEL_PATH
+                        the path of trt model (works only for Jetson TX2 device)
 
 ```
 Note: pass your specialized model to the `detecor_model_path` argument and its `label_map.pbtxt` file to the `label_map` argument. Otherwise the default COCO model will be used.
