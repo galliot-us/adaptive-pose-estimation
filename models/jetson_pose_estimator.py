@@ -12,6 +12,7 @@ from tools.pose_nms import pose_nms
 from tools.transformations import get_affine_transform, get_max_pred
 import numpy as np
 import cv2
+import time
 
 
 class TRTPoseEstimator(BasePoseEstimator):
@@ -53,7 +54,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         # result = result_raw[0:num_detected_objects,:]
         return result_raw
 
-    def inference(self, preprocessed_image):
+    def inference(self, preprocessed_image): 
         raw_detections = self.detector.inference(preprocessed_image)
         detections = prepare_detection_results(raw_detections, self.detector_width, self.detector_height)
 
@@ -80,7 +81,7 @@ class TRTPoseEstimator(BasePoseEstimator):
             start_idx = 0
             while remainder > 0:
                 endidx = min(self.batch_size, remainder)
-                print('remainder', remainder, 'start_idx', start_idx, 'endidx', endidx)
+                #print('remainder', remainder, 'start_idx', start_idx, 'endidx', endidx)
                 batch_inps[0:endidx, :] = inps[start_idx: start_idx + endidx, :]
                 self._load_images_to_buffer(batch_inps)
                 with self.model.create_execution_context() as context:
@@ -143,8 +144,6 @@ class TRTPoseEstimator(BasePoseEstimator):
         inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
         cropped_boxes = np.zeros([boxes.shape[0], 4])
         for i, box in enumerate(boxes):
-            print(np.shape(image))
-            print(np.shape(box))
 
             inps[i], cropped_box = self.transform_single_detection(image, box, input_size)
             cropped_boxes[i] = np.float32(cropped_box)
