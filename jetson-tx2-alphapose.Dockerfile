@@ -40,4 +40,5 @@ ENV LD_PRELOAD="/usr/lib/aarch64-linux-gnu/libtcmalloc_minimal.so.4"
 
 RUN apt update && apt install -y cmake protobuf-compiler libprotobuf-dev
 RUN pip3 install onnx
+ENV relative_path=/repo/adaptive_object_detection 
 ENV PYTHONPATH=/repo:/repo/adaptive_object_detection
