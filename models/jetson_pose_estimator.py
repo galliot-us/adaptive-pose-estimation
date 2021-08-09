@@ -21,13 +21,15 @@ class TRTPoseEstimator(BasePoseEstimator):
                  detector_input_size=(300, 300),
                  pose_input_size=(256, 192),
                  heatmap_size=(64, 48),
-                 batch_size=8
+                 batch_size=8,
+                 pose_model_path=None
                  ):
         super().__init__(detector_thresh)
         self.detector_height, self.detector_width = detector_input_size
         self.pose_input_size = pose_input_size
         self.heatmap_size = heatmap_size
         self.batch_size = batch_size
+        self.pose_model_path = pose_model_path
         self.h_input = None
         self.d_input = None
         self.h_ouput = None
@@ -224,9 +226,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         np.copyto(self.h_input, preprocessed)
 
     def _load_engine(self):
-        base_dir = "models/data/"
-        model_file = "fast_pose_fp16_b8.trt"
-        model_path = os.path.join(base_dir, model_file)
+        model_path =self.pose_model_path
         if not os.path.isfile(model_path):
             logging.info(
                 'model does not exist under: {}'.format(str(model_path)))
