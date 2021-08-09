@@ -21,6 +21,7 @@ def inference(args):
     heatmap_height = args.heatmap_height
     label_map_file = args.label_map
     batch_size = args.batch_size
+    pose_model_path = args.pose_model_path
     if not label_map_file:
         label_map_file = "adaptive_object_detection/utils/mscoco_label_map.pbtxt"
     label_map = create_category_index_dict(label_map_file)
@@ -30,15 +31,16 @@ def inference(args):
                                           detector_input_size=(detector_input_height, detector_input_width),
                                           pose_input_size=(pose_input_height, pose_input_width),
                                           heatmap_size=(heatmap_height, heatmap_width))
-    elif device == "jetson":
+    elif device == "jetson-tx2":
         from models.jetson_pose_estimator import TRTPoseEstimator
         pose_estimator = TRTPoseEstimator(detector_thresh=detector_thresh,
                                           detector_input_size=(detector_input_height, detector_input_width),
                                           pose_input_size=(pose_input_height, pose_input_width),
                                           heatmap_size=(heatmap_height, heatmap_width),
-                                          batch_size=batch_size)
+                                          batch_size=batch_size,
+                                          pose_model_path=pose_model_path)
     else:
-        raise ValueError("device should be 'x86' or 'jetson' but you provided {0}".format(device))
+        raise ValueError("device should be 'x86' or 'jetson-tx2' but you provided {0}".format(device))
     video_uri = args.input_video
     if not os.path.isfile(video_uri):
         raise FileNotFoundError('video file does not exist under: {}'.format(video_uri))
@@ -87,7 +89,7 @@ def inference(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script runs the inference of pose estimation models")
     parser.add_argument("--device", type=str, default="x86",
-                        help="supports x86 and trt which is running on x86 device")
+                        help="supports x86 and jetson-tx2 device")
     parser.add_argument("--input_video", type=str, required=True, help="input video path")
     parser.add_argument("--out_dir", type=str, required=True, help="directory to store output video")
     parser.add_argument("--detector_model_path", type=str,
@@ -102,7 +104,10 @@ if __name__ == "__main__":
     parser.add_argument("--heatmap_height", type=int, default=64, help="height of the pose heatmap")
     parser.add_argument("--out_width", type=int, default=960, help="width of the output video")
     parser.add_argument("--out_height", type=int, default=540, help="height of the output video")
-    parser.add_argument("--batch_size", type=int, default=8, help="batch size of pose estimator (it only works for jetson)")
+    parser.add_argument("--batch_size", type=int, default=8,
+                        help="batch size of pose estimator (it only works for jetson)")
+    parser.add_argument("--pose_model_path", type=str, default="models/data/fast_pose_fp16_b8.trt",
+                        help="using for jetson, path to the pose estimator model file, if not provided the default the model is loaded by default path")
 
     args = parser.parse_args()
 

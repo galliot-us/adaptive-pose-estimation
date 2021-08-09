@@ -40,19 +40,21 @@ docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo ne
 4. Start Inference:
 
 ```
-python3 inference/inference.py [--device DEVICE] --input_video INPUT_VIDEO --out_dir                                                                                               
-                    OUT_DIR [--detector_model_path DETECTOR_MODEL_PATH]                                                                                                      
-                    [--label_map LABEL_MAP]                                                                                                                                  
-                    [--detector_threshold DETECTOR_THRESHOLD]                                                                                                                
-                    [--detector_input_width DETECTOR_INPUT_WIDTH]                                                                                                            
-                    [--detector_input_height DETECTOR_INPUT_HEIGHT]                                                                                                          
-                    [--pose_input_width POSE_INPUT_WIDTH]
-                    [--pose_input_height POSE_INPUT_HEIGHT]
-                    [--heatmap_width HEATMAP_WIDTH]
-                    [--heatmap_height HEATMAP_HEIGHT] [--out_width OUT_WIDTH]
-                    [--out_height OUT_HEIGHT]
-                    [--batch_size BATCH_SIZE]
-                    [--trt_model_path TRT_MODEL_PATH]
+python3 inference/inference.py --device DEVICE --input_video INPUT_VIDEO                                
+                    --out_dir OUT_DIR
+                    --detector_model_path DETECTOR_MODEL_PATH                                                                                                      
+                    --label_map LABEL_MAP                                                                                                                                  
+                    --detector_threshold DETECTOR_THRESHOLD                                                                                                             
+                    --detector_input_width DETECTOR_INPUT_WIDTH                                                                                                           
+                    --detector_input_height DETECTOR_INPUT_HEIGHT                                                                                                          
+                    --pose_input_width POSE_INPUT_WIDTH
+                    --pose_input_height POSE_INPUT_HEIGHT
+                    --heatmap_width HEATMAP_WIDTH
+                    --heatmap_height HEATMAP_HEIGHT
+                    --out_width OUT_WIDTH
+                    --out_height OUT_HEIGHT
+                    --batch_size BATCH_SIZE
+                    --trt_model_path TRT_MODEL_PATH
 
 
 
