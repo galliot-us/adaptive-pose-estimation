@@ -76,14 +76,12 @@ class TRTPoseEstimator(BasePoseEstimator):
                 # Transfer input data to the GPU.
                 result_raw = self._batch_execute(context, num_detected_objects, batch_inps)
                 result = result_raw[0:num_detected_objects, :]
-                # print("DONE!", result)
 
         else:
             remainder = num_detected_objects
             start_idx = 0
             while remainder > 0:
                 endidx = min(self.batch_size, remainder)
-                #print('remainder', remainder, 'start_idx', start_idx, 'endidx', endidx)
                 batch_inps[0:endidx, :] = inps[start_idx: start_idx + endidx, :]
                 self._load_images_to_buffer(batch_inps)
                 with self.model.create_execution_context() as context:
@@ -116,9 +114,9 @@ class TRTPoseEstimator(BasePoseEstimator):
 
         preds_img = np.array(pose_coords)
         preds_scores = np.array(pose_scores)
-
-        boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-            pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
+        # TODO
+        #boxes, scores, ids, preds_img, preds_scores, pick_ids = \
+        #    pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
         _result = []
         for k in range(len(scores)):
             if np.ndim(preds_scores[k] == 2):
