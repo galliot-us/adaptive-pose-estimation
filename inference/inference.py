@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--out_height", type=int, default=540, help="height of the output video")
     parser.add_argument("--batch_size", type=int, default=8,
                         help="batch size of pose estimator (it only works for jetson)")
-    parser.add_argument("pose_model_path", type=str, default="models/data/fast_pose_fp16_b8.trt",
+    parser.add_argument("--pose_model_path", type=str, default="models/data/fast_pose_fp16_b8.trt",
                         help="using for jetson, path to the pose estimator model file, if not provided the default the model is loaded by default path")
 
     args = parser.parse_args()
