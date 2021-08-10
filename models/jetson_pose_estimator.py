@@ -114,9 +114,8 @@ class TRTPoseEstimator(BasePoseEstimator):
 
         preds_img = np.array(pose_coords)
         preds_scores = np.array(pose_scores)
-        # TODO
-        #boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-        #    pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
+        boxes, scores, ids, preds_img, preds_scores, pick_ids = \
+            pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
         _result = []
         for k in range(len(scores)):
             if np.ndim(preds_scores[k] == 2):
