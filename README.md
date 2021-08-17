@@ -4,7 +4,7 @@ This is the neuralet's Adaptive Pose Estimation repository. With this module you
 
 ## Supported Devices
 
-**Nvidia Jetson family and X86 devices with Nvidia GPUs** are supported. For running on X85 devices you should have [Docker](https://docs.docker.com/get-docker/) and [Nvidia Docker Toolkit](https://github.com/NVIDIA/nvidia-docker) on your system
+**Nvidia Jetson family and X86 devices with Nvidia GPUs** are supported. For running pose estimator you should have [Docker](https://docs.docker.com/get-docker/) and [Nvidia Docker Toolkit](https://github.com/NVIDIA/nvidia-docker) on your system
 
 ## Getting Started
 
