@@ -31,7 +31,7 @@ def inference(args):
                                           detector_input_size=(detector_input_height, detector_input_width),
                                           pose_input_size=(pose_input_height, pose_input_width),
                                           heatmap_size=(heatmap_height, heatmap_width))
-    elif device == "jetson-tx2":
+    elif device == "jetson":
         from models.jetson_pose_estimator import TRTPoseEstimator
         pose_estimator = TRTPoseEstimator(detector_thresh=detector_thresh,
                                           detector_input_size=(detector_input_height, detector_input_width),
@@ -89,7 +89,7 @@ def inference(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script runs the inference of pose estimation models")
     parser.add_argument("--device", type=str, default="x86",
-                        help="supports x86 and jetson-tx2 device")
+                        help="supports x86 and jetson device")
     parser.add_argument("--input_video", type=str, required=True, help="input video path")
     parser.add_argument("--out_dir", type=str, required=True, help="directory to store output video")
     parser.add_argument("--detector_model_path", type=str,

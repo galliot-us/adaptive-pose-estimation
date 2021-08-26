@@ -4,7 +4,9 @@ This is the neuralet's Adaptive Pose Estimation repository. With this module you
 
 ## Supported Devices
 
-**Nvidia Jetson family and X86 devices with Nvidia GPUs** are supported. For running pose estimator you should have [Docker](https://docs.docker.com/get-docker/) and [Nvidia Docker Toolkit](https://github.com/NVIDIA/nvidia-docker) on your system
+* X86 devices with Nvidia GPUs
+* Nvidia Jetson family are supported. (JetPack 4.4)\
+For running pose estimator you should have [Docker](https://docs.docker.com/get-docker/) and [Nvidia Docker Toolkit](https://github.com/NVIDIA/nvidia-docker) on your system
 
 ## Getting Started
 
@@ -25,17 +27,17 @@ docker build -f x86-gpu.Dockerfile -t "neuralet/pose-estimation:latest-x86_64_gp
 docker run -it --gpus all -v "$PWD":/repo neuralet/pose-estimation:latest-x86_64_gpu
 ```
 
-3-2. Build and run docker container on Jetson TX2:
+3-2. Build and run docker container on Jetson devices:
 ```
-docker build -f jetson-tx2-alphapose.Dockerfile -t "neuralet/pose-estimation:latest-jetson_tx2" .
-docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo neuralet/pose-estimation:latest-jetson_tx2
+docker build -f jetson.Dockerfile -t "neuralet/pose-estimation:latest-jetson" .
+docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo neuralet/pose-estimation:latest-jetson
 ```
-* Make sure you run the following bash script inside the Jetson TX2 container to export TRT model.
+* Make sure you run the following bash script inside the Jetson container to export TRT model.
   ```
   # bash generate_pose_tensorrt.bash [ONNX FILE URL] [Stored on FLOAT16(fp16)/ FLOAT32(fp32)] [BATCH_SIZE]
   bash generate_pose_tensorrt.bash https://media.githubusercontent.com/media/neuralet/models/master/ONNX/fastpose/fastpose_resnet50_256_192_tf.onnx fp16 8
-  NOTE: Fore Jetson TX2 batch size 8 is recommended
   ```
+NOTE: For Jetson TX2 batch size 8 is recommended. For other devices you can test multiple batch sizes to find the optimum one.
 
 4. Start Inference:
 
@@ -62,7 +64,7 @@ python3 inference/inference.py --device DEVICE --input_video INPUT_VIDEO
 ```
 optional arguments:
   -h, --help            show this help message and exit
-  --device DEVICE       supports x86 and jetson-tx2
+  --device DEVICE       supports x86 and jetson
   --input_video INPUT_VIDEO
                         input video path
   --out_dir OUT_DIR     directory to store output video
@@ -90,9 +92,9 @@ optional arguments:
   --out_height OUT_HEIGHT
                         height of the output video
   --batch_size BATCH_SIZE
-                        the trt model batch size (works only for Jetson TX2 device)
+                        the trt model batch size (works only for Jetson devices)
   --trt_model_path TRT_MODEL_PATH
-                        the path of trt model (works only for Jetson TX2 device)
+                        the path of trt model (works only for Jetson devices)
 
 ```
 Note: pass your specialized model to the `detecor_model_path` argument and its `label_map.pbtxt` file to the `label_map` argument. Otherwise the default COCO model will be used.
