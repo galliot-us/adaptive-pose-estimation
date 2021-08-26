@@ -37,7 +37,7 @@ docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo ne
   # bash generate_pose_tensorrt.bash [ONNX FILE URL] [Stored on FLOAT16(fp16)/ FLOAT32(fp32)] [BATCH_SIZE]
   bash generate_pose_tensorrt.bash https://media.githubusercontent.com/media/neuralet/models/master/ONNX/fastpose/fastpose_resnet50_256_192_tf.onnx fp16 8
   ```
-NOTE: Fore Jetson TX2 batch size 8 is recommended. For other devices you can test multiple batch sizes to find the optimum one.
+NOTE: For Jetson TX2 batch size 8 is recommended. For other devices you can test multiple batch sizes to find the optimum one.
 
 4. Start Inference:
 
