@@ -7,12 +7,10 @@ from adaptive_object_detection.detectors.jetson_detector import JetsonDetector
 from .base_pose_estimator import BasePoseEstimator
 from tools.convert_results_format import prepare_detection_results
 from tools.bbox import box_to_center_scale, center_scale_to_box
-from tools.transformations import im_to_tensor
 from tools.pose_nms import pose_nms
 from tools.transformations import get_affine_transform, get_max_pred
 import numpy as np
 import cv2
-import time
 
 
 class TRTPoseEstimator(BasePoseEstimator):
@@ -48,12 +46,11 @@ class TRTPoseEstimator(BasePoseEstimator):
         self.detector.load_model(detector_path, detector_label_map)
         self._init_cuda_stuff()
 
-    def _batch_execute(self, context, num_detected_objects, batch_inps):
+    def _batch_execute(self, context):
         cuda.memcpy_htod_async(self.d_input, self.h_input, self.stream)
         context.execute(batch_size=self.batch_size, bindings=[int(self.d_input), int(self.d_output)])
         cuda.memcpy_dtoh_async(self.h_ouput, self.d_output, self.stream)
         result_raw = self.h_ouput.reshape((self.batch_size, 64, 48, 17))  # TODO: it only works for fastpost
-        # result = result_raw[0:num_detected_objects,:]
         return result_raw
 
     def inference(self, preprocessed_image): 
@@ -74,7 +71,7 @@ class TRTPoseEstimator(BasePoseEstimator):
             self._load_images_to_buffer(batch_inps)
             with self.model.create_execution_context() as context:
                 # Transfer input data to the GPU.
-                result_raw = self._batch_execute(context, num_detected_objects, batch_inps)
+                result_raw = self._batch_execute(context)
                 result = result_raw[0:num_detected_objects, :]
 
         else:
@@ -85,7 +82,7 @@ class TRTPoseEstimator(BasePoseEstimator):
                 batch_inps[0:endidx, :] = inps[start_idx: start_idx + endidx, :]
                 self._load_images_to_buffer(batch_inps)
                 with self.model.create_execution_context() as context:
-                    result_raw = self._batch_execute(context, num_detected_objects, batch_inps)
+                    result_raw = self._batch_execute(context)
                     result[start_idx: start_idx + endidx, :] = result_raw[0:endidx, :]
                 remainder -= self.batch_size
                 start_idx += self.batch_size
