@@ -216,6 +216,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         if not os.path.isfile(model_path):
             logging.info(
                 'model does not exist under: {}'.format(str(model_path)))
+                exit()
         else:
             with open(model_path, 'rb') as f:
                 engine_data = f.read()
