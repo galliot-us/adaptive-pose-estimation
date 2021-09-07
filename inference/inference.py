@@ -39,10 +39,6 @@ def inference(args):
                                           heatmap_size=(heatmap_height, heatmap_width),
                                           batch_size=batch_size,
                                           pose_model_path=pose_model_path)
-    elif device == "edgetpu":
-        from models.edgetpu_pose_estimator import EdgeTPUPoseEstimator
-        # TODO
-
     else:
         raise ValueError("device should be 'x86' or 'jetson-tx2' but you provided {0}".format(device))
     video_uri = args.input_video
@@ -93,7 +89,7 @@ def inference(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script runs the inference of pose estimation models")
     parser.add_argument("--device", type=str, default="x86",
-                        help="supports x86, jetson-tx2, edgetpu devices")
+                        help="supports x86, jetson-tx2")
     parser.add_argument("--input_video", type=str, required=True, help="input video path")
     parser.add_argument("--out_dir", type=str, required=True, help="directory to store output video")
     parser.add_argument("--detector_model_path", type=str,

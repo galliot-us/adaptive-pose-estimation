@@ -53,7 +53,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         result_raw = self.h_ouput.reshape((self.batch_size, 64, 48, 17))  # TODO: it only works for fastpost
         return result_raw
 
-    def inference(self, preprocessed_image): 
+    def inference(self, preprocessed_image):
         raw_detections = self.detector.inference(preprocessed_image)
         detections = prepare_detection_results(raw_detections, self.detector_width, self.detector_height)
 
@@ -139,33 +139,25 @@ class TRTPoseEstimator(BasePoseEstimator):
         ids = np.zeros(scores.shape)
         inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
         cropped_boxes = np.zeros([boxes.shape[0], 4])
+        image = image / 255.0
+        image[..., 0] = image[..., 0] - 0.406
+        image[..., 1] = image[..., 1] - 0.457
+        image[..., 2] = image[..., 2] - 0.480
+        aspect_ratio = input_size[1] / input_size[0]
         for i, box in enumerate(boxes):
-
-            inps[i], cropped_box = self.transform_single_detection(image, box, input_size)
+            inps[i], cropped_box = self.transform_single_detection(image, box, input_size, aspect_ratio)
             cropped_boxes[i] = np.float32(cropped_box)
-        # inps = im_to_tensor(inps)
         return inps, cropped_boxes, boxes, scores, ids
 
     @staticmethod
-    def transform_single_detection(image, bbox, input_size):
-        aspect_ratio = input_size[1] / input_size[0]
+    def transform_single_detection(image, bbox, input_size, aspect_ratio):
         xmin, ymin, xmax, ymax = bbox
         center, scale = box_to_center_scale(
             xmin, ymin, xmax - xmin, ymax - ymin, aspect_ratio)
-        scale = scale * 1.0
 
-        input_size = input_size
-        inp_h, inp_w = input_size
-
-        trans = get_affine_transform(center, scale, 0, [inp_w, inp_h])
-        inp_h, inp_w = input_size
-        img = cv2.warpAffine(image, trans, (int(inp_w), int(inp_h)), flags=cv2.INTER_LINEAR)
+        trans = get_affine_transform(center, scale, 0, [input_size[1], input_size[0]])
+        img = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
         bbox = center_scale_to_box(center, scale)
-        img = img / 255.0
-        img[..., 0] = img[..., 0] - 0.406
-        img[..., 1] = img[..., 1] - 0.457
-        img[..., 2] = img[..., 2] - 0.480
-        # img = im_to_tensor(img)
         return img, bbox
 
     def heatmap_to_coord(self, hms, bbox, hms_flip=None, **kwargs):
@@ -220,7 +212,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         np.copyto(self.h_input, preprocessed)
 
     def _load_engine(self):
-        model_path =self.pose_model_path
+        model_path = self.pose_model_path
         if not os.path.isfile(model_path):
             logging.info(
                 'model does not exist under: {}'.format(str(model_path)))
