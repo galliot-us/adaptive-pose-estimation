@@ -17,18 +17,18 @@ from tools.transformations import get_affine_transform, get_max_pred
 
 class X86PoseEstimator(BasePoseEstimator):
     def __init__(self,
-            detector_thresh,
-            detector_input_size=(300,300),
-            pose_input_size=(256, 192),
-            heatmap_size=(64, 48),
-            ):
+                 detector_thresh,
+                 detector_input_size=(300, 300),
+                 pose_input_size=(256, 192),
+                 heatmap_size=(64, 48),
+                 ):
 
         super().__init__(detector_thresh)
         self.pose_input_size = pose_input_size
         self.heatmap_size = heatmap_size
-        self.detector_height, self.detector_width = detector_input_size 
+        self.detector_height, self.detector_width = detector_input_size
 
-    def load_model(self, detector_path, detector_label_map): 
+    def load_model(self, detector_path, detector_label_map):
         self.detector = X86Detector(width=self.detector_width, height=self.detector_height, thresh=self.detector_thresh)
         self.detector.load_model(detector_path, detector_label_map)
 
@@ -38,24 +38,23 @@ class X86PoseEstimator(BasePoseEstimator):
         model_file = model_name + ".tar.gz"
         model_path = os.path.join(base_dir, model_file)
         if not os.path.isfile(model_path):
-            logging.info('model does not exist under: {}, downloading from {}'.format(str(model_path), base_url + model_file))
+            logging.info(
+                'model does not exist under: {}, downloading from {}'.format(str(model_path), base_url + model_file))
             os.makedirs(base_dir, exist_ok=True)
             wget.download(base_url + model_file, base_dir)
             with tarfile.open(base_dir + model_file, "r") as tar:
-                tar.extractall(path=base_dir) 
+                tar.extractall(path=base_dir)
         model_dir = pathlib.Path(base_dir) / "saved_model"
         self.model = tf.saved_model.load(str(model_dir))
         self.pose_model = self.model.signatures['serving_default']
 
-
     def preprocess(self, raw_image):
         return self.detector.preprocess(raw_image)
-
 
     def inference(self, preprocessed_image):
         raw_detections = self.detector.inference(preprocessed_image)
         detections = prepare_detection_results(raw_detections, self.detector_width, self.detector_height)
-        inps, cropped_boxes, boxes, scores, ids = self.transform_detections(preprocessed_image, detections)  
+        inps, cropped_boxes, boxes, scores, ids = self.transform_detections(preprocessed_image, detections)
         if inps.shape[0] == 0:
             return (None, None, None, None, None)
         raw_output = self.pose_model(inps)
@@ -72,29 +71,30 @@ class X86PoseEstimator(BasePoseEstimator):
             hm_size = self.heatmap_size
             eval_joints = list(range(17))
             bbox = cropped_boxes[i].tolist()
-            pose_coord, pose_score = self.heatmap_to_coord(hm[i, :, :, eval_joints], bbox, hm_shape=hm_size, norm_type=None)
-            
+            pose_coord, pose_score = self.heatmap_to_coord(hm[i, :, :, eval_joints], bbox, hm_shape=hm_size,
+                                                           norm_type=None)
+
             pose_coords.append(pose_coord)
             pose_scores.append(pose_score)
-            
+
         preds_img = np.array(pose_coords)
         preds_scores = np.array(pose_scores)
-        
-        boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-                pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
+
+        #boxes, scores, ids, preds_img, preds_scores, pick_ids = \
+        #    pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
         _result = []
         for k in range(len(scores)):
             if np.ndim(preds_scores[k] == 2):
-                preds_scores[k] = preds_scores[k][:,0].reshape([17,1])
+                preds_scores[k] = preds_scores[k][:, 0].reshape([17, 1])
                 _result.append(
-                        {
-                            'keypoints': preds_img[k],
-                            'kp_score': preds_scores[k],
-                            'proposal_score': np.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
-                            'idx': ids[k],
-                            'bbox': [boxes[k][0], boxes[k][1], boxes[k][2], boxes[k][3]]
-                            }
-                        )
+                    {
+                        'keypoints': preds_img[k],
+                        'kp_score': preds_scores[k],
+                        'proposal_score': np.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
+                        'idx': ids[k],
+                        'bbox': [boxes[k][0], boxes[k][1], boxes[k][2], boxes[k][3]]
+                    }
+                )
         return _result
 
     def transform_detections(self, image, dets):
@@ -107,35 +107,27 @@ class X86PoseEstimator(BasePoseEstimator):
         ids = np.zeros(scores.shape)
         inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
         cropped_boxes = np.zeros([boxes.shape[0], 4])
+        image = image / 255.0
+        image[..., 0] = image[..., 0] - 0.406
+        image[..., 1] = image[..., 1] - 0.457
+        image[..., 2] = image[..., 2] - 0.480
+        aspect_ratio = input_size[1] / input_size[0]
         for i, box in enumerate(boxes):
-            inps[i], cropped_box = self.transform_single_detection(image, box, input_size)
+            inps[i], cropped_box = self.transform_single_detection(image, box, input_size, aspect_ratio)
             cropped_boxes[i] = np.float32(cropped_box)
-        inps = im_to_tensor(inps) 
+        inps = im_to_tensor(inps)
         return inps, cropped_boxes, boxes, scores, ids
 
-
     @staticmethod
-    def transform_single_detection(image, bbox, input_size):
-        aspect_ratio = input_size[1] / input_size[0]
+    def transform_single_detection(image, bbox, input_size, aspect_ratio):
         xmin, ymin, xmax, ymax = bbox
         center, scale = box_to_center_scale(
             xmin, ymin, xmax - xmin, ymax - ymin, aspect_ratio)
-        scale = scale * 1.0
-
-        input_size = input_size
-        inp_h, inp_w = input_size
-
-        trans = get_affine_transform(center, scale, 0, [inp_w, inp_h])
-        inp_h, inp_w = input_size
-        img = cv2.warpAffine(image, trans, (int(inp_w), int(inp_h)), flags=cv2.INTER_LINEAR)
+        trans = get_affine_transform(center, scale, 0, [input_size[1], input_size[0]])
+        img = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
         bbox = center_scale_to_box(center, scale)
-        img = img / 255.0
-        img[..., 0] = img[..., 0] - 0.406
-        img[..., 1] = img[..., 1] - 0.457
-        img[..., 2] = img[..., 2] - 0.480
-        #img = im_to_tensor(img)
         return img, bbox
- 
+
     def heatmap_to_coord(self, hms, bbox, hms_flip=None, **kwargs):
         if hms_flip is not None:
             hms = (hms + hms_flip) / 2
@@ -167,9 +159,9 @@ class X86PoseEstimator(BasePoseEstimator):
         # Transform back
         for i in range(coords.shape[0]):
             preds[i] = self.transform_preds(coords[i], center, scale,
-                                       [hm_w, hm_h])
+                                            [hm_w, hm_h])
 
-        return preds, maxvals        
+        return preds, maxvals
 
     def transform_preds(self, coords, center, scale, output_size):
         target_coords = np.zeros(coords.shape)

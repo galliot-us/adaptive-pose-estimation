@@ -7,12 +7,10 @@ from adaptive_object_detection.detectors.jetson_detector import JetsonDetector
 from .base_pose_estimator import BasePoseEstimator
 from tools.convert_results_format import prepare_detection_results
 from tools.bbox import box_to_center_scale, center_scale_to_box
-from tools.transformations import im_to_tensor
 from tools.pose_nms import pose_nms
 from tools.transformations import get_affine_transform, get_max_pred
 import numpy as np
 import cv2
-import time
 
 
 class TRTPoseEstimator(BasePoseEstimator):
@@ -48,15 +46,14 @@ class TRTPoseEstimator(BasePoseEstimator):
         self.detector.load_model(detector_path, detector_label_map)
         self._init_cuda_stuff()
 
-    def _batch_execute(self, context, num_detected_objects, batch_inps):
+    def _batch_execute(self, context):
         cuda.memcpy_htod_async(self.d_input, self.h_input, self.stream)
         context.execute(batch_size=self.batch_size, bindings=[int(self.d_input), int(self.d_output)])
         cuda.memcpy_dtoh_async(self.h_ouput, self.d_output, self.stream)
         result_raw = self.h_ouput.reshape((self.batch_size, 64, 48, 17))  # TODO: it only works for fastpost
-        # result = result_raw[0:num_detected_objects,:]
         return result_raw
 
-    def inference(self, preprocessed_image): 
+    def inference(self, preprocessed_image):
         raw_detections = self.detector.inference(preprocessed_image)
         detections = prepare_detection_results(raw_detections, self.detector_width, self.detector_height)
 
@@ -74,7 +71,7 @@ class TRTPoseEstimator(BasePoseEstimator):
             self._load_images_to_buffer(batch_inps)
             with self.model.create_execution_context() as context:
                 # Transfer input data to the GPU.
-                result_raw = self._batch_execute(context, num_detected_objects, batch_inps)
+                result_raw = self._batch_execute(context)
                 result = result_raw[0:num_detected_objects, :]
 
         else:
@@ -85,7 +82,7 @@ class TRTPoseEstimator(BasePoseEstimator):
                 batch_inps[0:endidx, :] = inps[start_idx: start_idx + endidx, :]
                 self._load_images_to_buffer(batch_inps)
                 with self.model.create_execution_context() as context:
-                    result_raw = self._batch_execute(context, num_detected_objects, batch_inps)
+                    result_raw = self._batch_execute(context)
                     result[start_idx: start_idx + endidx, :] = result_raw[0:endidx, :]
                 remainder -= self.batch_size
                 start_idx += self.batch_size
@@ -114,8 +111,8 @@ class TRTPoseEstimator(BasePoseEstimator):
 
         preds_img = np.array(pose_coords)
         preds_scores = np.array(pose_scores)
-        boxes, scores, ids, preds_img, preds_scores, pick_ids = \
-            pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
+        #boxes, scores, ids, preds_img, preds_scores, pick_ids = \
+        #    pose_nms(boxes, scores, ids, preds_img, preds_scores, 0)
         _result = []
         for k in range(len(scores)):
             if np.ndim(preds_scores[k] == 2):
@@ -142,33 +139,25 @@ class TRTPoseEstimator(BasePoseEstimator):
         ids = np.zeros(scores.shape)
         inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
         cropped_boxes = np.zeros([boxes.shape[0], 4])
+        image = image / 255.0
+        image[..., 0] = image[..., 0] - 0.406
+        image[..., 1] = image[..., 1] - 0.457
+        image[..., 2] = image[..., 2] - 0.480
+        aspect_ratio = input_size[1] / input_size[0]
         for i, box in enumerate(boxes):
-
-            inps[i], cropped_box = self.transform_single_detection(image, box, input_size)
+            inps[i], cropped_box = self.transform_single_detection(image, box, input_size, aspect_ratio)
             cropped_boxes[i] = np.float32(cropped_box)
-        # inps = im_to_tensor(inps)
         return inps, cropped_boxes, boxes, scores, ids
 
     @staticmethod
-    def transform_single_detection(image, bbox, input_size):
-        aspect_ratio = input_size[1] / input_size[0]
+    def transform_single_detection(image, bbox, input_size, aspect_ratio):
         xmin, ymin, xmax, ymax = bbox
         center, scale = box_to_center_scale(
             xmin, ymin, xmax - xmin, ymax - ymin, aspect_ratio)
-        scale = scale * 1.0
 
-        input_size = input_size
-        inp_h, inp_w = input_size
-
-        trans = get_affine_transform(center, scale, 0, [inp_w, inp_h])
-        inp_h, inp_w = input_size
-        img = cv2.warpAffine(image, trans, (int(inp_w), int(inp_h)), flags=cv2.INTER_LINEAR)
+        trans = get_affine_transform(center, scale, 0, [input_size[1], input_size[0]])
+        img = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
         bbox = center_scale_to_box(center, scale)
-        img = img / 255.0
-        img[..., 0] = img[..., 0] - 0.406
-        img[..., 1] = img[..., 1] - 0.457
-        img[..., 2] = img[..., 2] - 0.480
-        # img = im_to_tensor(img)
         return img, bbox
 
     def heatmap_to_coord(self, hms, bbox, hms_flip=None, **kwargs):
@@ -223,10 +212,11 @@ class TRTPoseEstimator(BasePoseEstimator):
         np.copyto(self.h_input, preprocessed)
 
     def _load_engine(self):
-        model_path =self.pose_model_path
+        model_path = self.pose_model_path
         if not os.path.isfile(model_path):
             logging.info(
                 'model does not exist under: {}'.format(str(model_path)))
+            exit()
         else:
             with open(model_path, 'rb') as f:
                 engine_data = f.read()
