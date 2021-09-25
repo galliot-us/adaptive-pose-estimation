@@ -2,6 +2,29 @@ import numpy as np
 import cv2
 import tensorflow as tf
 
+def vectorized_affine_transform():
+    scales_tmp = scales
+    src_w = scales_tmp[:,0]
+    dst_w = input_size[0]
+    dst_h = input_size[1]
+
+    rot_rad = np.pi * rot / 180
+    src_results = np.zeros(scales.shape, dtype=np.float32)
+    src_points = np.zeros(scales.shape, dtype=np.float32)
+    src_points[:,1] = src_w * -0.5
+    src_dir = vectorized_get_dir(src_points, rot_rad)
+
+
+def vectorized_get_3d_point():
+    pass
+
+def vectorized_get_dir(src_points, rot_rad):
+    """Rotate the point by `rot_rad` degree."""
+    sn, cs = np.sin(rot_rad), np.cos(rot_rad)
+    src_results = np.zeros(scales.shape, dtype=np.float32)
+    src_results[:,0] = src_points[:,0] * cs - src_points[:,1] * sn
+    src_results[:,1] = src_points[:,0] * sn + src_points[:,1] * cs
+    return src_results
 
 def get_affine_transform(center,
                          scale,
