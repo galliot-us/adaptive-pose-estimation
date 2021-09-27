@@ -40,7 +40,7 @@ def inference(args):
                                           batch_size=batch_size,
                                           pose_model_path=pose_model_path)
     else:
-        raise ValueError("device should be 'x86' or 'jetson-tx2' but you provided {0}".format(device))
+        raise ValueError("device should be 'x86' or 'jetson' but you provided {0}".format(device))
     video_uri = args.input_video
     if not os.path.isfile(video_uri):
         raise FileNotFoundError('video file does not exist under: {}'.format(video_uri))
