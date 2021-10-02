@@ -150,7 +150,7 @@ class TRTPoseEstimator(BasePoseEstimator):
         dst, src = vectorized_affine_transform(centers, scales, rot, input_size)
 
         for i, itm in enumerate(dst):
-            trans = cv2.getAffineTransform(np.float32(itm), np.float32(src[i,:,:]))
+            trans = cv2.getAffineTransform(np.float32(src[i,:,:]), np.float32(itm))
             inps[i] = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
         
         return inps, cropped_boxes, boxes, scores, ids

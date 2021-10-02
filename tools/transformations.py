@@ -5,8 +5,8 @@ import tensorflow as tf
 def vectorized_affine_transform(centers, scales, rot, output_size):
     scales_tmp = scales
     src_w = scales_tmp[:,0]
-    dst_w = output_size[0]
-    dst_h = output_size[1]
+    dst_w = output_size[1]
+    dst_h = output_size[0]
 
     rot_rad = np.pi * rot / 180
     src_results = np.zeros(scales.shape, dtype=np.float32)
