@@ -1,6 +1,6 @@
-# Neuralet Adaptive Pose Estimation
+# Galliot Adaptive Pose Estimation
 
-This is the neuralet's Adaptive Pose Estimation repository. With this module you can run specialized pose estimation models with the help of [Neuralet's Adaptive Learning API](https://api.neuralet.io/).
+This is the Galliot's Adaptive Pose Estimation repository. With this module you can run specialized pose estimation models with the help of [Galliot's Adaptive Learning API](https://api.neuralet.io/).
 
 ## Supported Devices
 
@@ -17,25 +17,25 @@ Note that your models categories must contains **person** class.
 2. Clone this repository:
 
 ```
-git clone --recurse-submodules https://github.com/neuralet/adaptive-pose-estimation.git
+git clone --recurse-submodules https://github.com/galliot-us/adaptive-pose-estimation.git
 cd adaptive-pose-estimation
 ```
 
 3-1. Build and run docker container on X86 with GPU:
 ```
-docker build -f x86-gpu.Dockerfile -t "neuralet/pose-estimation:latest-x86_64_gpu" .
-docker run -it --gpus all -v "$PWD":/repo neuralet/pose-estimation:latest-x86_64_gpu
+docker build -f x86-gpu.Dockerfile -t "galliot/pose-estimation:latest-x86_64_gpu" .
+docker run -it --gpus all -v "$PWD":/repo galliot/pose-estimation:latest-x86_64_gpu
 ```
 
 3-2. Build and run docker container on Jetson devices:
 ```
-docker build -f jetson.Dockerfile -t "neuralet/pose-estimation:latest-jetson" .
-docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo neuralet/pose-estimation:latest-jetson
+docker build -f jetson.Dockerfile -t "galliot/pose-estimation:latest-jetson" .
+docker run --runtime nvidia --entrypoint bash --privileged -it -v $PWD/:/repo galliot/pose-estimation:latest-jetson
 ```
 * Make sure you run the following bash script inside the Jetson container to export TRT model.
   ```
   # bash generate_pose_tensorrt.bash [ONNX FILE URL] [Stored on FLOAT16(fp16)/ FLOAT32(fp32)] [BATCH_SIZE]
-  bash generate_pose_tensorrt.bash https://media.githubusercontent.com/media/neuralet/models/master/ONNX/fastpose/fastpose_resnet50_256_192_tf.onnx fp16 8
+  bash generate_pose_tensorrt.bash https://media.githubusercontent.com/media/galliot-us/models/master/ONNX/fastpose/fastpose_resnet50_256_192_tf.onnx fp16 8
   ```
 NOTE: For Jetson TX2 batch size 8 is recommended. For other devices you can test multiple batch sizes to find the optimum one.
 
