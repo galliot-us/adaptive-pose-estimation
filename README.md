@@ -1,3 +1,5 @@
+> **Galliot now hosts all Neuralet’s content and expertise gained in three years of work and completing high-quality applications, mainly in Computer Vision and Deep Learning. [More Info](https://galliot.us/blog/neuralet-migrated-to-galliot/)**
+
 # Galliot Adaptive Pose Estimation
 
 This is the Galliot's Adaptive Pose Estimation repository. With this module you can run specialized pose estimation models with the help of [Galliot's Adaptive Learning API](https://api.neuralet.io/).
