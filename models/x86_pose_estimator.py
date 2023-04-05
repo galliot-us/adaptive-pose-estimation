@@ -9,10 +9,10 @@ from .base_pose_estimator import BasePoseEstimator
 import cv2
 from adaptive_object_detection.detectors.x86_detector import X86Detector
 from tools.convert_results_format import prepare_detection_results
-from tools.bbox import box_to_center_scale, center_scale_to_box
+from tools.bbox import vectorized_boxes_to_centers_scales, vectorized_centers_scales_to_boxes
 from tools.transformations import get_affine_transform, im_to_tensor
 from tools.pose_nms import pose_nms
-from tools.transformations import get_affine_transform, get_max_pred
+from tools.transformations import get_affine_transform, get_max_pred, vectorized_affine_transform
 
 
 class X86PoseEstimator(BasePoseEstimator):
@@ -104,6 +104,7 @@ class X86PoseEstimator(BasePoseEstimator):
         dets = dets[dets[:, 0] == 0]
         boxes = dets[:, 1:5]
         scores = dets[:, 5:6]
+        rot = 0
         ids = np.zeros(scores.shape)
         inps = np.zeros([boxes.shape[0], int(input_size[0]), int(input_size[1]), 3])
         cropped_boxes = np.zeros([boxes.shape[0], 4])
@@ -112,21 +113,14 @@ class X86PoseEstimator(BasePoseEstimator):
         image[..., 1] = image[..., 1] - 0.457
         image[..., 2] = image[..., 2] - 0.480
         aspect_ratio = input_size[1] / input_size[0]
-        for i, box in enumerate(boxes):
-            inps[i], cropped_box = self.transform_single_detection(image, box, input_size, aspect_ratio)
-            cropped_boxes[i] = np.float32(cropped_box)
+        centers, scales = vectorized_boxes_to_centers_scales(boxes, aspect_ratio)
+        cropped_boxes = vectorized_centers_scales_to_boxes(centers, scales)
+        dst, src = vectorized_affine_transform(centers, scales, rot, input_size)
+        for i, itm in enumerate(dst):
+            trans = cv2.getAffineTransform(np.float32(src[i,:,:]), np.float32(itm))
+            inps[i] = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
         inps = im_to_tensor(inps)
         return inps, cropped_boxes, boxes, scores, ids
-
-    @staticmethod
-    def transform_single_detection(image, bbox, input_size, aspect_ratio):
-        xmin, ymin, xmax, ymax = bbox
-        center, scale = box_to_center_scale(
-            xmin, ymin, xmax - xmin, ymax - ymin, aspect_ratio)
-        trans = get_affine_transform(center, scale, 0, [input_size[1], input_size[0]])
-        img = cv2.warpAffine(image, trans, (int(input_size[1]), int(input_size[0])), flags=cv2.INTER_LINEAR)
-        bbox = center_scale_to_box(center, scale)
-        return img, bbox
 
     def heatmap_to_coord(self, hms, bbox, hms_flip=None, **kwargs):
         if hms_flip is not None:

@@ -1,6 +1,33 @@
 import numpy as np
 
 
+def vectorized_boxes_to_centers_scales(boxes, aspect_ratio=1.0, scale_mult=1.25):
+   """The vectorized version of convert box coordinates to center and scale."""
+   centers = np.zeros((boxes.shape[0], 2), dtype=np.float32)
+   w = boxes[:,2] - boxes[:,0]
+   h = boxes[:,3] - boxes[:,1]
+   centers[:,0] = boxes[:, 0] + w * 0.5
+   centers[:,1] = boxes[:, 1] + h * 0.5
+   idx = np.where(np.array((w > aspect_ratio * h), dtype=int) > 0)
+   h[idx] = w[idx] / aspect_ratio
+   idx = np.where(np.array((w < aspect_ratio * h), dtype=int) > 0 )
+   w[idx] = h[idx] * aspect_ratio
+   scales = np.zeros((boxes.shape[0], 2), dtype=np.float32)
+   scales[:,0] = w
+   scales[:,1] = h
+   idx = np.where(centers[:,0] != -1)
+   scales[idx,:] = scales[idx,:] * scale_mult
+   return centers, scales
+
+def vectorized_centers_scales_to_boxes(centers, scales):
+    xmin = np.array(centers[:,0] - scales[:,0] * 0.5)
+    ymin = np.array(centers[:,1] - scales[:,1] * 0.5)
+    cropped_boxes = np.array([xmin, ymin,np.array(xmin + scales[:,0]),
+                np.array(ymin + scales[:,1])])
+    cropped_boxes = np.transpose(cropped_boxes)
+    return cropped_boxes
+
+
 def box_to_center_scale(x, y, w, h, aspect_ratio=1.0, scale_mult=1.25):
     """Convert box coordinates to center and scale.
     adapted from https://github.com/Microsoft/human-pose-estimation.pytorch
